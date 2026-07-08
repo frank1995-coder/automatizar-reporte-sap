@@ -8,6 +8,22 @@ from application.report_service import ReportService
 from infrastructure.hana_repository import HanaRepository
 
 
+# ---------------------------------------------------------------------------
+# Paleta "Tech Dark"
+# ---------------------------------------------------------------------------
+BG_BASE = "#0B1120"          # fondo general (slate-950)
+BG_CARD = "#141B2D"          # tarjetas
+BG_CARD_SOFT = "#1B2438"     # tarjetas secundarias / hover
+BORDER_SOFT = "#26324A"      # bordes sutiles
+ACCENT_A = "#6366F1"         # índigo
+ACCENT_B = "#22D3EE"         # cian
+SUCCESS = "#34D399"
+ERROR = "#F87171"
+TEXT_PRIMARY = "#F1F5F9"
+TEXT_SECONDARY = "#8AA0C0"
+TEXT_MUTED = "#5B6B85"
+
+
 class ProgressReporter:
     """Objeto compartido para comunicar progreso entre hilos."""
     def __init__(self):
@@ -34,17 +50,18 @@ class MainApp:
     def __init__(self, page: ft.Page):
         self.page = page
         self.page.title = "Orodelti - Automatización de Reportes SAP"
-        self.page.window_width = 900
-        self.page.window_height = 600
-        self.page.window_min_width = 800
-        self.page.window_min_height = 550
-        self.page.theme_mode = ft.ThemeMode.LIGHT           # modo claro
+        self.page.window.width = 980
+        self.page.window.height = 660
+        self.page.window.min_width = 860
+        self.page.window.min_height = 600
+        self.page.theme_mode = ft.ThemeMode.DARK
         self.page.theme = ft.Theme(
-            color_scheme_seed="#00BCD4",                    # cyan
+            color_scheme_seed=ACCENT_A,
             use_material3=True,
         )
-        self.page.bgcolor = "#E0F7FA"                       # fondo aguamarina claro
+        self.page.bgcolor = BG_BASE
         self.page.padding = 0
+        self.page.fonts = {}
 
         self.selected_file = None
         self.processing = False
@@ -58,117 +75,239 @@ class MainApp:
         )
         self.service = ReportService(self.repo)
 
-        # ---------- Barra superior (AppBar) ----------
-        self.appbar = ft.AppBar(
-            leading=ft.Icon(ft.Icons.ANALYTICS_OUTLINED, color=ft.Colors.WHITE),
-            leading_width=40,
-            title=ft.Text("Automatización de Reportes SAP", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
-            center_title=False,
-            bgcolor="#00ACC1",      # cyan intenso
-            elevation=4,
+        # ---------- Barra superior ----------
+        logo_badge = ft.Container(
+            width=42,
+            height=42,
+            border_radius=12,
+            gradient=ft.LinearGradient(
+                begin=ft.Alignment.TOP_LEFT,
+                end=ft.Alignment.BOTTOM_RIGHT,
+                colors=[ACCENT_A, ACCENT_B],
+            ),
+            content=ft.Icon(ft.Icons.BOLT_ROUNDED, color=ft.Colors.WHITE, size=22),
+            alignment=ft.Alignment.CENTER,
+        )
+
+        self.top_bar = ft.Container(
+            padding=ft.Padding(24, 16, 24, 16),
+            bgcolor=BG_CARD,
+            border=ft.Border(bottom=ft.BorderSide(1, BORDER_SOFT)),
+            content=ft.Row(
+                [
+                    ft.Row(
+                        [
+                            logo_badge,
+                            ft.Column(
+                                [
+                                    ft.Text(
+                                        "Automatización de Reportes SAP",
+                                        size=17,
+                                        weight=ft.FontWeight.W_700,
+                                        color=TEXT_PRIMARY,
+                                    ),
+                                    ft.Text(
+                                        "Orodelti · Compras y Traslados",
+                                        size=12,
+                                        color=TEXT_SECONDARY,
+                                    ),
+                                ],
+                                spacing=2,
+                            ),
+                        ],
+                        spacing=14,
+                    ),
+                    ft.Container(
+                        padding=ft.Padding(10, 5, 10, 5),
+                        border_radius=20,
+                        bgcolor=ft.Colors.with_opacity(0.12, SUCCESS),
+                        content=ft.Row(
+                            [
+                                ft.Container(width=7, height=7, border_radius=10, bgcolor=SUCCESS),
+                                ft.Text("SAP HANA conectado", size=11, color=SUCCESS, weight=ft.FontWeight.W_600),
+                            ],
+                            spacing=6,
+                            tight=True,
+                        ),
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            ),
         )
 
         # ---------- Menú lateral ----------
         self.nav_rail = ft.NavigationRail(
             selected_index=0,
             label_type=ft.NavigationRailLabelType.ALL,
-            min_width=100,
+            min_width=96,
             min_extended_width=180,
             group_alignment=-0.9,
-            bgcolor="#00BCD4",           # cyan medio vibrante
-            indicator_color="#FFD54F",   # amarillo brillante (indicador)
+            bgcolor=BG_CARD,
+            indicator_color=ft.Colors.with_opacity(0.15, ACCENT_B),
             destinations=[
                 ft.NavigationRailDestination(
                     icon=ft.Icons.FILE_UPLOAD_OUTLINED,
-                    selected_icon=ft.Icons.FILE_UPLOAD,
-                    label="Generar Reporte"
+                    selected_icon=ft.Icon(ft.Icons.FILE_UPLOAD, color=ACCENT_B),
+                    label="Generar",
                 ),
                 ft.NavigationRailDestination(
                     icon=ft.Icons.SETTINGS_OUTLINED,
                     selected_icon=ft.Icons.SETTINGS,
-                    label="Configuración",
+                    label="Config.",
                     disabled=True,
                 ),
                 ft.NavigationRailDestination(
                     icon=ft.Icons.INFO_OUTLINED,
-                    selected_icon=ft.Icons.INFO,
+                    selected_icon=ft.Icon(ft.Icons.INFO, color=ACCENT_B),
                     label="Acerca de",
                 ),
             ],
             on_change=self.nav_changed,
         )
 
-        # ---------- Contenido principal ----------
-        self.file_icon = ft.Icon(ft.Icons.INSERT_DRIVE_FILE_OUTLINED, size=80, color="#80DEEA")
-        self.file_text = ft.Text("Ningún archivo seleccionado", size=16, italic=True, color="#607D8B")
-        self.select_btn = ft.ElevatedButton(
-            "Seleccionar archivo Excel",
-            icon=ft.Icons.FOLDER_OPEN,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10),
-                bgcolor="#00BCD4",
-                color=ft.Colors.WHITE,
-            ),
-            on_click=self.seleccionar_archivo,
+        # ---------- Tarjeta: selector de archivo ----------
+        self.file_icon_badge = ft.Container(
+            width=72,
+            height=72,
+            border_radius=20,
+            bgcolor=ft.Colors.with_opacity(0.08, ACCENT_B),
+            border=ft.Border.all(1, ft.Colors.with_opacity(0.25, ACCENT_B)),
+            alignment=ft.Alignment.CENTER,
+            content=ft.Icon(ft.Icons.INSERT_DRIVE_FILE_OUTLINED, size=34, color=ACCENT_B),
         )
+        self.file_text = ft.Text(
+            "Ningún archivo seleccionado",
+            size=14,
+            color=TEXT_SECONDARY,
+        )
+        self.file_subtext = ft.Text(
+            "Formatos admitidos: .xlsx",
+            size=11,
+            color=TEXT_MUTED,
+        )
+        self.select_btn = self._build_gradient_button(
+            text="Seleccionar archivo Excel",
+            icon=ft.Icons.FOLDER_OPEN_ROUNDED,
+            on_click=self.seleccionar_archivo,
+            colors=[ACCENT_A, ACCENT_B],
+        )
+
         self.file_picker_container = ft.Container(
             content=ft.Column(
-                [self.file_icon, self.file_text, self.select_btn],
+                [
+                    self.file_icon_badge,
+                    ft.Container(height=6),
+                    self.file_text,
+                    self.file_subtext,
+                    ft.Container(height=10),
+                    self.select_btn,
+                ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=10,
+                spacing=4,
             ),
-            border=ft.Border.all(2, "#4DD0E1"),      # borde cyan claro
-            border_radius=12,
-            padding=30,
-            bgcolor=ft.Colors.WHITE,                 # tarjeta blanca
-            width=600,
+            border=ft.Border.all(1, BORDER_SOFT),
+            border_radius=18,
+            padding=36,
+            bgcolor=BG_CARD,
+            width=560,
             alignment=ft.Alignment.CENTER,
-        )
-
-        self.generate_btn = ft.FilledButton(
-            "Generar Reporte",
-            icon=ft.Icons.PLAY_ARROW,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10),
-                bgcolor="#FF7043",                   # naranja coral
-                color=ft.Colors.WHITE,
+            shadow=ft.BoxShadow(
+                blur_radius=24,
+                spread_radius=-4,
+                color=ft.Colors.with_opacity(0.4, "#000000"),
+                offset=ft.Offset(0, 8),
             ),
-            disabled=True,
-            on_click=self.generar_reporte,
         )
 
-        self.progress_bar = ft.ProgressBar(width=400, value=0, visible=False, color="#00ACC1")
-        self.progress_percent = ft.Text("0%", size=12, weight=ft.FontWeight.BOLD, visible=False, color="#37474F")
-        self.status_text = ft.Text("", size=14, visible=False, color="#37474F")
+        self.generate_btn = self._build_gradient_button(
+            text="Generar Reporte",
+            icon=ft.Icons.PLAY_ARROW_ROUNDED,
+            on_click=self.generar_reporte,
+            colors=["#FB923C", "#F97316"],
+            disabled=True,
+        )
+
+        self.progress_bar = ft.ProgressBar(
+            width=460,
+            value=0,
+            visible=False,
+            color=ACCENT_B,
+            bgcolor=BG_CARD_SOFT,
+            border_radius=10,
+        )
+        self.progress_percent = ft.Text(
+            "0%", size=12, weight=ft.FontWeight.W_700, visible=False, color=TEXT_PRIMARY,
+        )
+        self.status_icon = ft.Icon(ft.Icons.SYNC_ROUNDED, size=16, color=ACCENT_B, visible=False)
+        self.status_text = ft.Text("", size=13, visible=False, color=TEXT_SECONDARY)
 
         self.main_column = ft.Column(
             [
-                ft.Text("Generación de Reportes de Compras y Traslados", size=22,
-                        weight=ft.FontWeight.BOLD, color="#37474F"),
-                ft.Divider(height=20, thickness=1, color="#4DD0E1"),
                 self.file_picker_container,
+                ft.Container(height=8),
                 ft.Row([self.generate_btn], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Row([self.progress_bar, self.progress_percent], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
-                self.status_text,
+                ft.Container(height=4),
+                ft.Row([self.progress_bar, self.progress_percent],
+                       alignment=ft.MainAxisAlignment.CENTER, spacing=12),
+                ft.Row([self.status_icon, self.status_text],
+                       alignment=ft.MainAxisAlignment.CENTER, spacing=8),
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=20,
+            spacing=18,
             expand=True,
             alignment=ft.MainAxisAlignment.CENTER,
         )
 
         self.page.add(
-            ft.Row(
+            ft.Column(
                 [
-                    self.nav_rail,
-                    ft.VerticalDivider(width=1, color="#4DD0E1"),
-                    ft.Container(content=self.main_column, expand=True, padding=20),
+                    self.top_bar,
+                    ft.Row(
+                        [
+                            self.nav_rail,
+                            ft.VerticalDivider(width=1, color=BORDER_SOFT),
+                            ft.Container(content=self.main_column, expand=True, padding=24),
+                        ],
+                        expand=True,
+                    ),
                 ],
+                spacing=0,
                 expand=True,
             )
         )
-        self.page.add(self.appbar)
         self.page.update()
+
+    # ---------- Helpers de UI ----------
+    def _build_gradient_button(self, text, icon, on_click, colors, disabled=False):
+        """Botón con relleno en degradado (Container clickeable con InkWell)."""
+        content_row = ft.Row(
+            [ft.Icon(icon, color=ft.Colors.WHITE, size=18), ft.Text(text, color=ft.Colors.WHITE, weight=ft.FontWeight.W_600)],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=8,
+            tight=True,
+        )
+        btn = ft.Container(
+            content=content_row,
+            padding=ft.Padding(24, 14, 24, 14),
+            border_radius=12,
+            gradient=ft.LinearGradient(
+                begin=ft.Alignment.CENTER_LEFT,
+                end=ft.Alignment.CENTER_RIGHT,
+                colors=colors,
+            ),
+            ink=True,
+            on_click=None if disabled else on_click,
+            opacity=0.4 if disabled else 1.0,
+            disabled=disabled,
+            animate_opacity=200,
+            alignment=ft.Alignment.CENTER,
+        )
+        return btn
+
+    def _set_button_disabled(self, btn: ft.Container, disabled: bool, on_click=None):
+        btn.disabled = disabled
+        btn.opacity = 0.4 if disabled else 1.0
+        btn.on_click = None if disabled else on_click
 
     # ---------- Eventos ----------
     def nav_changed(self, e):
@@ -177,8 +316,12 @@ class MainApp:
 
     def mostrar_acerca_de(self):
         dlg = ft.AlertDialog(
-            title=ft.Text("Acerca de"),
-            content=ft.Text("Automatización de Reportes SAP v2.0\n\nDesarrollado para Orodelti."),
+            bgcolor=BG_CARD,
+            title=ft.Text("Acerca de", color=TEXT_PRIMARY),
+            content=ft.Text(
+                "Automatización de Reportes SAP v2.0\n\nDesarrollado para Orodelti.",
+                color=TEXT_SECONDARY,
+            ),
         )
         self.page.dialog = dlg
         dlg.open = True
@@ -198,12 +341,17 @@ class MainApp:
         root.destroy()
         if ruta:
             self.selected_file = ruta
-            self.file_text.value = f"📄 {os.path.basename(ruta)}"
-            self.file_text.color = "#37474F"                     # texto oscuro
-            self.file_icon.name = ft.Icons.INSERT_DRIVE_FILE
-            self.file_icon.color = "#00BCD4"
-            self.generate_btn.disabled = False
+            self.file_text.value = os.path.basename(ruta)
+            self.file_text.color = TEXT_PRIMARY
+            self.file_subtext.value = "Archivo listo para procesar"
+            self.file_subtext.color = SUCCESS
+            self.file_icon_badge.content.name = ft.Icons.TASK_OUTLINED
+            self.file_icon_badge.content.color = SUCCESS
+            self.file_icon_badge.bgcolor = ft.Colors.with_opacity(0.08, SUCCESS)
+            self.file_icon_badge.border = ft.Border.all(1, ft.Colors.with_opacity(0.3, SUCCESS))
+            self._set_button_disabled(self.generate_btn, False, self.generar_reporte)
             self.status_text.visible = False
+            self.status_icon.visible = False
             self.progress_bar.visible = False
             self.progress_percent.visible = False
             self.page.update()
@@ -213,14 +361,18 @@ class MainApp:
             return
 
         self.processing = True
-        self.select_btn.disabled = True
-        self.generate_btn.disabled = True
+        self._set_button_disabled(self.select_btn, True)
+        self._set_button_disabled(self.generate_btn, True)
         self.progress_bar.visible = True
         self.progress_bar.value = 0
+        self.progress_bar.color = ACCENT_B
         self.progress_percent.visible = True
         self.progress_percent.value = "0%"
         self.status_text.visible = True
         self.status_text.value = "Iniciando..."
+        self.status_icon.visible = True
+        self.status_icon.name = ft.Icons.SYNC_ROUNDED
+        self.status_icon.color = ACCENT_B
         self.page.update()
 
         reporter = ProgressReporter()
@@ -247,24 +399,36 @@ class MainApp:
                 await asyncio.sleep(0.1)
 
             self.processing = False
-            self.select_btn.disabled = False
-            self.generate_btn.disabled = False
+            self._set_button_disabled(self.select_btn, False, self.seleccionar_archivo)
+            self._set_button_disabled(self.generate_btn, False, self.generar_reporte)
+
             if reporter.error:
                 self.status_text.value = f"Error: {reporter.error}"
-                self.progress_bar.color = ft.Colors.RED
+                self.status_text.color = ERROR
+                self.status_icon.name = ft.Icons.ERROR_OUTLINE_ROUNDED
+                self.status_icon.color = ERROR
+                self.progress_bar.color = ERROR
                 self.progress_bar.value = 1
                 self.progress_percent.value = "100%"
             else:
                 self.status_text.value = "¡Reporte generado exitosamente!"
-                self.progress_bar.color = "#66BB6A"
+                self.status_text.color = SUCCESS
+                self.status_icon.name = ft.Icons.CHECK_CIRCLE_OUTLINE_ROUNDED
+                self.status_icon.color = SUCCESS
+                self.progress_bar.color = SUCCESS
                 self.progress_bar.value = 1
                 self.progress_percent.value = "100%"
                 self.page.dialog = ft.AlertDialog(
-                    title=ft.Text("Éxito"),
+                    bgcolor=BG_CARD,
+                    title=ft.Row(
+                        [ft.Icon(ft.Icons.CHECK_CIRCLE_ROUNDED, color=SUCCESS), ft.Text("Éxito", color=TEXT_PRIMARY)],
+                        spacing=8,
+                    ),
                     content=ft.Text(
                         f"Archivo: {os.path.basename(self.selected_file)}\n"
                         f"Hojas creadas: {', '.join(reporter.resultado['hojas'])}\n"
-                        f"Saldos iniciales: {len(reporter.resultado['saldos_iniciales'])} artículos"
+                        f"Saldos iniciales: {len(reporter.resultado['saldos_iniciales'])} artículos",
+                        color=TEXT_SECONDARY,
                     ),
                 )
                 self.page.dialog.open = True
@@ -275,3 +439,7 @@ class MainApp:
 
 def main():
     ft.app(target=MainApp, name="Orodelti - Reportes SAP")
+
+
+if __name__ == "__main__":
+    main()
