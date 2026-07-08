@@ -279,9 +279,10 @@ class MainApp:
 
     # ---------- Helpers de UI ----------
     def _build_gradient_button(self, text, icon, on_click, colors, disabled=False):
-        """Botón con relleno en degradado (Container clickeable con InkWell)."""
+        """Botón con degradado, escala al pasar el mouse y sombra."""
         content_row = ft.Row(
-            [ft.Icon(icon, color=ft.Colors.WHITE, size=18), ft.Text(text, color=ft.Colors.WHITE, weight=ft.FontWeight.W_600)],
+            [ft.Icon(icon, color=ft.Colors.WHITE, size=18),
+             ft.Text(text, color=ft.Colors.WHITE, weight=ft.FontWeight.W_600)],
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=8,
             tight=True,
@@ -301,8 +302,29 @@ class MainApp:
             disabled=disabled,
             animate_opacity=200,
             alignment=ft.Alignment.CENTER,
+            # ---- Efecto hover: escala y sombra ----
+            animate_scale=ft.Animation(250, "easeOutCubic"),
+            scale=1.0,
+            shadow=None,
+            on_hover=self._on_button_hover if not disabled else None,
         )
         return btn
+
+    def _on_button_hover(self, e: ft.ControlEvent):
+        """Aplica escala y sombra cuando el mouse entra/sale del botón."""
+        btn = e.control
+        if e.data == "true":  # mouse entrando
+            btn.scale = 1.05
+            btn.shadow = ft.BoxShadow(
+                blur_radius=20,
+                spread_radius=-2,
+                color=ft.Colors.with_opacity(0.35, ACCENT_B),
+                offset=ft.Offset(0, 6),
+            )
+        else:  # mouse saliendo
+            btn.scale = 1.0
+            btn.shadow = None
+        self.page.update()
 
     def _set_button_disabled(self, btn: ft.Container, disabled: bool, on_click=None):
         btn.disabled = disabled
@@ -339,22 +361,23 @@ class MainApp:
         )
         root.attributes('-topmost', False)
         root.destroy()
-        if ruta:
-            self.selected_file = ruta
-            self.file_text.value = os.path.basename(ruta)
-            self.file_text.color = TEXT_PRIMARY
-            self.file_subtext.value = "Archivo listo para procesar"
-            self.file_subtext.color = SUCCESS
-            self.file_icon_badge.content.name = ft.Icons.TASK_OUTLINED
-            self.file_icon_badge.content.color = SUCCESS
-            self.file_icon_badge.bgcolor = ft.Colors.with_opacity(0.08, SUCCESS)
-            self.file_icon_badge.border = ft.Border.all(1, ft.Colors.with_opacity(0.3, SUCCESS))
-            self._set_button_disabled(self.generate_btn, False, self.generar_reporte)
-            self.status_text.visible = False
-            self.status_icon.visible = False
-            self.progress_bar.visible = False
-            self.progress_percent.visible = False
-            self.page.update()
+        if not ruta:
+            return
+        self.selected_file = ruta
+        self.file_text.value = os.path.basename(ruta)
+        self.file_text.color = TEXT_PRIMARY
+        self.file_subtext.value = "Archivo listo para procesar"
+        self.file_subtext.color = SUCCESS
+        self.file_icon_badge.content.name = ft.Icons.TASK_OUTLINED
+        self.file_icon_badge.content.color = SUCCESS
+        self.file_icon_badge.bgcolor = ft.Colors.with_opacity(0.08, SUCCESS)
+        self.file_icon_badge.border = ft.Border.all(1, ft.Colors.with_opacity(0.3, SUCCESS))
+        self._set_button_disabled(self.generate_btn, False, self.generar_reporte)
+        self.status_text.visible = False
+        self.status_icon.visible = False
+        self.progress_bar.visible = False
+        self.progress_percent.visible = False
+        self.page.update()
 
     def generar_reporte(self, e):
         if not self.selected_file or self.processing:
