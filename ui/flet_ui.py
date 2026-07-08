@@ -8,9 +8,9 @@ from application.report_service import ReportService
 from infrastructure.hana_repository import HanaRepository
 
 
-# ---------------------------------------------------------------------------
+
 # Paleta "Tech Dark"
-# ---------------------------------------------------------------------------
+
 BG_BASE = "#0B1120"          # fondo general (slate-950)
 BG_CARD = "#141B2D"          # tarjetas
 BG_CARD_SOFT = "#1B2438"     # tarjetas secundarias / hover
@@ -22,7 +22,6 @@ ERROR = "#F87171"
 TEXT_PRIMARY = "#F1F5F9"
 TEXT_SECONDARY = "#8AA0C0"
 TEXT_MUTED = "#5B6B85"
-
 
 class ProgressReporter:
     """Objeto compartido para comunicar progreso entre hilos."""
@@ -44,7 +43,6 @@ class ProgressReporter:
     def set_error(self, error):
         self.completado = True
         self.error = error
-
 
 class MainApp:
     def __init__(self, page: ft.Page):
@@ -165,7 +163,7 @@ class MainApp:
             on_change=self.nav_changed,
         )
 
-        # ---------- Tarjeta: selector de archivo ----------
+        # -- Tarjeta: selector de archivo 
         self.file_icon_badge = ft.Container(
             width=72,
             height=72,
@@ -356,7 +354,7 @@ class MainApp:
         root.withdraw()
         root.attributes('-topmost', True)
         ruta = filedialog.askopenfilename(
-            title="Selecciona tu reporte SAP",
+            title="Selecciona tu reporte de SAP",
             filetypes=[("Archivos Excel", "*.xlsx"), ("Todos los archivos", "*.*")]
         )
         root.attributes('-topmost', False)

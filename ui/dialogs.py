@@ -11,7 +11,7 @@ def pedir_archivo() -> str:
     )
     root.destroy()
     if not ruta:
-        sys.exit("❌ No se seleccionó ningún archivo.")
+        sys.exit("No se seleccionó ningún archivo.")
     return ruta
 
 def mostrar_mensaje(msg: str):

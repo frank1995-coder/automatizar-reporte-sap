@@ -383,7 +383,7 @@ class ReportService:
                         key=lambda x: (int(x.split('-')[1]),
                                         orden_meses.index(x.split('-')[0])))
 
-        # 2. Construir filas
+        # 2. Construir filas con los datos base
         filas = []
         for _, row_base in df_base.iterrows():
             articulo = row_base['Artículo']
@@ -397,8 +397,8 @@ class ReportService:
             fila = {
                 'Artículo': articulo,
                 'Descripción Artículo': desc,
-                'Código Proveedor': codigo_prov,    # ← columna nueva
-                'Nombre Proveedor': nombre_prov,    # ← coluFmna nueva         # ← Columna nueva
+                'Código Proveedor': codigo_prov,
+                'Nombre Proveedor': nombre_prov,
                 'Unidad Medida': unidad,
                 'Saldo Inicial': saldo_inicial
             }
@@ -417,24 +417,42 @@ class ReportService:
 
             filas.append(fila)
 
-        # 3. Orden de columnas definitivo
+        # 3. Orden de columnas definitivo (incluye las nuevas)
         column_order = (
-            ['Artículo', 'Descripción Artículo', 'Unidad Medida','Código Proveedor', 
-            'Nombre Proveedor' ,'Saldo Inicial'] +
-        periodos +
+            ['Artículo', 'Descripción Artículo', 'Código Proveedor', 'Nombre Proveedor',
+            'Unidad Medida', 'Saldo Inicial'] +
+            periodos +
             ['PROMEDIO', 'STOCK MAXIMO', 'STOCK SEGURIDAD', 'STOCK TRIMESTRAL', 'MAYOR ROTACION'] +
-            ['En stock', 'Comprometido', 'Solicitado', 'Disponible']
+            ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']
         )
-        
-        # 4. Crear DataFrame con el orden correcto
+
+        # 4. Crear DataFrame
         df_presup = pd.DataFrame(filas, columns=column_order)
 
-        # 5. Cálculo de columnas (los meses se toman solo de la lista 'periodos')
+        # 5. Rellenar columnas de inventario (valores reales de HANA)
+        stock_cols = ['En stock', 'Comprometido', 'Solicitado', 'Disponible']
+        for col in stock_cols:
+            df_presup[col] = 0.0
+        for idx, row in df_presup.iterrows():
+            art = row['Artículo']
+            inv = inventarios_dict.get(art, {})
+            df_presup.at[idx, 'En stock'] = inv.get('Stock', 0.0)
+            df_presup.at[idx, 'Comprometido'] = inv.get('Comprometido', 0.0)
+            df_presup.at[idx, 'Solicitado'] = inv.get('Solicitado', 0.0)
+            df_presup.at[idx, 'Disponible'] = inv.get('Disponible', 0.0)
+
+        # 6. Calcular columnas derivadas
         mes_cols = periodos
         df_presup['PROMEDIO'] = df_presup[mes_cols].mean(axis=1).round(2)
         df_presup['STOCK MAXIMO'] = df_presup[mes_cols].max(axis=1).round(2)
         df_presup['STOCK SEGURIDAD'] = (df_presup['STOCK MAXIMO'] - df_presup['PROMEDIO']).round(2)
         df_presup['STOCK TRIMESTRAL'] = (df_presup['PROMEDIO'] * 3 + df_presup['STOCK SEGURIDAD']).round(2)
+
+        # Disponible (Actual) = En stock - Comprometido
+        df_presup['Disponible (Actual)'] = (df_presup['En stock'] - df_presup['Comprometido']).round(2)
+        # Propuesto = PROMEDIO - Disponible (usamos la columna 'Disponible' que es el saldo disponible real)
+        df_presup['Propuesto'] = (df_presup['PROMEDIO'] - df_presup['Disponible']).clip(lower=0).round(2)
+       
 
         # MAYOR ROTACION
         meses_con_movimiento = (df_presup[mes_cols] > 0).sum(axis=1)
@@ -447,21 +465,9 @@ class ReportService:
                 return "STOCK PERMANENTE"
         df_presup['MAYOR ROTACION'] = meses_con_movimiento.apply(clasificar_rotacion)
 
-        # 6. Columnas de inventario
-        stock_cols = ['En stock', 'Comprometido', 'Solicitado', 'Disponible']
-        for col in stock_cols:
-            df_presup[col] = 0.0
-        for idx, row in df_presup.iterrows():
-            art = row['Artículo']
-            inv = inventarios_dict.get(art, {})
-            df_presup.at[idx, 'En stock'] = inv.get('Stock', 0.0)
-            df_presup.at[idx, 'Comprometido'] = inv.get('Comprometido', 0.0)
-            df_presup.at[idx, 'Solicitado'] = inv.get('Solicitado', 0.0)
-            df_presup.at[idx, 'Disponible'] = inv.get('Disponible', 0.0)
-
         # 7. Guardar en Excel
         sheet_name = "Presupuesto"
-        df_presup.to_excel(writer, sheet_name=sheet_name, index=False, startrow=3)
+        df_presup.to_excel(writer, sheet_name="Presupuesto", index=False, startrow=3, header=False)
 
         # 8. Formato
         ExcelFormatter.aplicar_formato_presupuesto(writer.sheets[sheet_name], periodos)

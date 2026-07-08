@@ -276,8 +276,9 @@ class ExcelFormatter:
         align_center = Alignment(horizontal='center', vertical='center')
 
         num_meses = len(periodos)
-        # Ahora hay 6 columnas fijas: Art, Desc, Código Prov, Nombre Prov, UM, Saldo Inicial
-        num_columnas_total = 6 + num_meses + 5 + 4
+        # Columnas fijas: Art, Desc, Cód.Prov, Nom.Prov, UM, Saldo Inicial = 6
+        # + meses + 5 calculadas + 6 inventario = 6 + num_meses + 5 + 6
+        num_columnas_total = 6 + num_meses + 5 + 6
         ultima_columna = num_columnas_total
 
         # Título
@@ -289,12 +290,12 @@ class ExcelFormatter:
         celda.alignment = align_center
 
         col = 1
-        cabeceras = [
+        cabeceras_fijas = [
             'Artículo', 'Descripción Artículo',
-            'Unidad Medida', 'Código Proveedor', 
-            'Nombre Proveedor',  'Saldo Inicial'
+            'Código Proveedor', 'Nombre Proveedor',
+            'Unidad Medida', 'Saldo Inicial'
         ]
-        for h in cabeceras:
+        for h in cabeceras_fijas:
             c = ws.cell(3, col)
             c.value = h
             c.font = font_header
@@ -302,7 +303,7 @@ class ExcelFormatter:
             c.fill = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
             col += 1
 
-        # Meses (igual)
+        # Meses
         for p in periodos:
             mes, anio = p.split('-')
             label = f"{mes.upper()} - {anio}"
@@ -313,7 +314,7 @@ class ExcelFormatter:
             c.fill = PatternFill(start_color="B0C4DE", end_color="B0C4DE", fill_type="solid")
             col += 1
 
-        # Calculadas (igual)
+        # Calculadas
         for titulo in ['PROMEDIO', 'STOCK MAXIMO', 'STOCK SEGURIDAD', 'STOCK TRIMESTRAL', 'MAYOR ROTACION']:
             c = ws.cell(3, col)
             c.value = titulo
@@ -322,8 +323,8 @@ class ExcelFormatter:
             c.fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
             col += 1
 
-        # Inventario (igual)
-        for titulo in ['En stock', 'Comprometido', 'Solicitado', 'Disponible']:
+        # Inventario (ahora incluye las dos nuevas)
+        for titulo in ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']:
             c = ws.cell(3, col)
             c.value = titulo
             c.font = font_header
