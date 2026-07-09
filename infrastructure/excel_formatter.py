@@ -1,5 +1,8 @@
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.chart import BarChart, Reference
 
 class ExcelFormatter:
     """Aplica formato a las hojas de los reportes finales"""
@@ -262,13 +265,96 @@ class ExcelFormatter:
 
     @staticmethod
     def crear_hoja_totales_por_grupo(writer, df_totales, sheet_name):
+        # Escribir los datos a partir de la fila 3 (fila 1 título, fila 2 encabezados)
         df_totales.to_excel(writer, sheet_name=sheet_name, index=False, startrow=2)
         ws = writer.sheets[sheet_name]
-        ws.column_dimensions['A'].width = 30
-        for i, col in enumerate(df_totales.columns, 1):
-            if col != 'Grupo Artículo':
-                ws.column_dimensions[get_column_letter(i)].width = 14
 
+        # ---------- Estilos ----------
+        title_font = Font(bold=True, size=14, color="FFFFFF")
+        header_font = Font(bold=True, size=11, color="FFFFFF")
+        header_fill = PatternFill(start_color="2F5496", end_color="2F5496", fill_type="solid")
+        title_fill = PatternFill(start_color="1F3864", end_color="1F3864", fill_type="solid")
+        center_align = Alignment(horizontal='center', vertical='center')
+        number_format = '#,##0.00'
+
+        total_cols = len(df_totales.columns)
+
+        # --- Título (fila 1) ---
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+        title_cell = ws.cell(1, 1)
+        title_cell.value = "TOTALES DE TRASLADOS POR GRUPO DE ARTÍCULO"
+        title_cell.font = title_font
+        title_cell.fill = title_fill
+        title_cell.alignment = center_align
+
+        # --- Encabezados (fila 2) ---
+        for col_idx, col_name in enumerate(df_totales.columns, start=1):
+            cell = ws.cell(2, col_idx)
+            cell.value = col_name
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center_align
+
+        # --- Formato de números en columnas de valores ---
+        for col_idx in range(1, total_cols + 1):
+            header = ws.cell(2, col_idx).value
+            if header and ('Cantidad' in header or 'Valor' in header):
+                for row in range(3, 3 + len(df_totales)):
+                    ws.cell(row, col_idx).number_format = number_format
+
+        # --- Ajustar ancho de columnas ---
+        for col_idx in range(1, total_cols + 1):
+            max_length = 0
+            for row in range(2, 3 + len(df_totales)):
+                cell_value = ws.cell(row, col_idx).value
+                if cell_value:
+                    max_length = max(max_length, len(str(cell_value)))
+            header_length = len(str(ws.cell(2, col_idx).value or ''))
+            adjusted_width = max(max_length, header_length) + 4
+            ws.column_dimensions[get_column_letter(col_idx)].width = adjusted_width
+
+        # ---------- Gráfico de barras: Cantidad por año y grupo ----------
+        # Buscar columnas de cantidad por año
+        cantidad_cols = []  # guardará (col_idx, año)
+        grupo_col = 1       # asumimos Grupo Artículo es la primera columna (A)
+        for col_idx in range(1, total_cols + 1):
+            col_name = ws.cell(2, col_idx).value
+            if col_name and col_name.startswith('Cantidad_'):
+                year = col_name.split('_')[-1]
+                cantidad_cols.append((col_idx, year))
+
+        if cantidad_cols and grupo_col:
+            # Número de filas de datos
+            num_data_rows = len(df_totales)
+            data_start_row = 3
+            data_end_row = data_start_row + num_data_rows - 1
+
+            chart = BarChart()
+            chart.type = "col"
+            chart.title = "Cantidad de Traslados por Año y Grupo"
+            chart.y_axis.title = "Cantidad"
+            chart.x_axis.title = "Grupo"
+            chart.style = 10
+            chart.width = 24
+            chart.height = 14
+
+            # Agregar series de datos (una por cada año)
+            for col_idx, year in cantidad_cols:
+                data_ref = Reference(ws, min_col=col_idx, min_row=2, max_row=data_end_row, max_col=col_idx)
+                chart.add_data(data_ref, titles_from_data=True)
+
+            # Categorías (nombres de grupos)
+            cats_ref = Reference(ws, min_col=grupo_col, min_row=3, max_row=data_end_row)
+            chart.set_categories(cats_ref)
+
+            # Colores para las series (hasta 5 años diferentes)
+            colors = ["2F5496", "C00000", "548235", "BF8F00", "7030A0"]
+            for i, series in enumerate(chart.series):
+                series.graphicalProperties.solidFill = colors[i % len(colors)]
+
+            # Colocar el gráfico debajo de los datos
+            chart_top_row = data_end_row + 3
+            ws.add_chart(chart, f"A{chart_top_row}")
     # ---------- NUEVO MÉTODO PARA PRESUPUESTO ----------
     @staticmethod
     def aplicar_formato_presupuesto(ws, periodos):
@@ -338,7 +424,7 @@ class ExcelFormatter:
         ws.column_dimensions['C'].width = 14   # Código Proveedor
         ws.column_dimensions['D'].width = 25   # Nombre Proveedor
         ws.column_dimensions['E'].width = 12   # UM
-        ws.column_dimensions['F'].width = 12   # UM Compras
+        ws.column_dimensions['F'].width = 15   # UM Compras
         ws.column_dimensions['G'].width = 12   # Factor Conversion
         ws.column_dimensions['H'].width = 12   # Saldo Inicial
         for c in range(9, col):
