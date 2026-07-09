@@ -237,9 +237,10 @@ class HanaRepository:
             batch = articulos_validos[i:i+self.batch_size]
             placeholders = ','.join(['?'] * len(batch))
             query = f'''
-                SELECT a."ItemCode", b."CardCode", b."CardName"
+                SELECT a."ItemCode", b."CardCode", b."CardName", 
+                a."BuyUnitMsr", a."NumInBuy"
                 FROM SBO_ORODELTI_PROD.OITM a
-                INNER JOIN SBO_ORODELTI_PROD.OCRD b ON a."CardCode" = b."CardCode"
+                left JOIN SBO_ORODELTI_PROD.OCRD b ON a."CardCode" = b."CardCode"
                 WHERE a."ItemCode" IN ({placeholders})
             '''
             try:
@@ -249,11 +250,16 @@ class HanaRepository:
                         item = str(row[0]).strip() if row[0] else ""
                         codigo = str(row[1]).strip() if row[1] else ""
                         nombre = str(row[2]).strip() if row[2] else ""
+                        unida_medida_compra = str(row[3]).strip() if row[3] else ""
+                        factor_conversion = float(row[4]) if row[4] is not None else 1.0
                         # Si el artículo ya tiene un proveedor, se puede concatenar o mantener el primero. Aquí mantenemos el primero.
                         if item not in resultados:
-                            resultados[item] = {"codigo": codigo, "nombre": nombre}
+                            resultados[item] = {"codigo": codigo, 
+                                                "nombre": nombre, 
+                                                "unidad_medida_compra": unida_medida_compra, 
+                                                "factor_conversion": factor_conversion}
             except Exception as e:
-                print(f"⚠️ Error en consulta proveedores: {e}")
+                print(f"Error en consulta proveedores: {e}")
                 for articulo in batch:
                     if articulo not in resultados:
                         resultados[articulo] = {"codigo": "", "nombre": ""}

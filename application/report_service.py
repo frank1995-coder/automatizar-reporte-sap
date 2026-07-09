@@ -389,9 +389,11 @@ class ReportService:
             articulo = row_base['Artículo']
             desc = row_base.get('Descripción Artículo', '')
             unidad = unidades_dict.get(articulo, 'UND')
-            prov_data = proveedores_dict.get(articulo, {"codigo": "", "nombre": ""})
+            prov_data = proveedores_dict.get(articulo, {"codigo": "", "nombre": "", "unidad_medida_compra": "", "factor_conversion": 1.0})
             codigo_prov = prov_data["codigo"]
             nombre_prov = prov_data["nombre"]
+            unidad_medida_compra = prov_data["unidad_medida_compra"]
+            factor_conversion = prov_data["factor_conversion"]
             saldo_inicial = row_base.get('Saldo Inicial Cantidad', 0.0)
 
             fila = {
@@ -400,7 +402,9 @@ class ReportService:
                 'Código Proveedor': codigo_prov,
                 'Nombre Proveedor': nombre_prov,
                 'Unidad Medida': unidad,
-                'Saldo Inicial': saldo_inicial
+                'Saldo Inicial': saldo_inicial,
+                'Unidad de Medida de Compra': unidad_medida_compra,
+                'Factor de Conversión': factor_conversion
             }
 
             # Cantidades por periodo
@@ -420,7 +424,7 @@ class ReportService:
         # 3. Orden de columnas definitivo (incluye las nuevas)
         column_order = (
             ['Artículo', 'Descripción Artículo', 'Código Proveedor', 'Nombre Proveedor',
-            'Unidad Medida', 'Saldo Inicial'] +
+            'Unidad Medida', 'Unidad de Medida de Compra', 'Factor de Conversión', 'Saldo Inicial'] +
             periodos +
             ['PROMEDIO', 'STOCK MAXIMO', 'STOCK SEGURIDAD', 'STOCK TRIMESTRAL', 'MAYOR ROTACION'] +
             ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']

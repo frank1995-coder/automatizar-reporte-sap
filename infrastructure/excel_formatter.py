@@ -276,9 +276,9 @@ class ExcelFormatter:
         align_center = Alignment(horizontal='center', vertical='center')
 
         num_meses = len(periodos)
-        # Columnas fijas: Art, Desc, Cód.Prov, Nom.Prov, UM, Saldo Inicial = 6
+        # Columnas fijas: Art, Desc, Cód.Prov, Nom.Prov, UM, UM Compras, Factor Conversion, Saldo Inicial = 8
         # + meses + 5 calculadas + 6 inventario = 6 + num_meses + 5 + 6
-        num_columnas_total = 6 + num_meses + 5 + 6
+        num_columnas_total = 8 + num_meses + 5 + 6
         ultima_columna = num_columnas_total
 
         # Título
@@ -293,7 +293,7 @@ class ExcelFormatter:
         cabeceras_fijas = [
             'Artículo', 'Descripción Artículo',
             'Código Proveedor', 'Nombre Proveedor',
-            'Unidad Medida', 'Saldo Inicial'
+            'Unidad Medida', 'Unidad de Medida de Compra', 'Factor de Conversión', 'Saldo Inicial'
         ]
         for h in cabeceras_fijas:
             c = ws.cell(3, col)
@@ -338,6 +338,8 @@ class ExcelFormatter:
         ws.column_dimensions['C'].width = 14   # Código Proveedor
         ws.column_dimensions['D'].width = 25   # Nombre Proveedor
         ws.column_dimensions['E'].width = 12   # UM
-        ws.column_dimensions['F'].width = 12   # Saldo Inicial
-        for c in range(7, col):
+        ws.column_dimensions['F'].width = 12   # UM Compras
+        ws.column_dimensions['G'].width = 12   # Factor Conversion
+        ws.column_dimensions['H'].width = 12   # Saldo Inicial
+        for c in range(9, col):
             ws.column_dimensions[get_column_letter(c)].width = 14
