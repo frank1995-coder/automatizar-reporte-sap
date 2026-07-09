@@ -383,17 +383,18 @@ class ReportService:
                         key=lambda x: (int(x.split('-')[1]),
                                         orden_meses.index(x.split('-')[0])))
 
-        # 2. Construir filas con los datos base
+        # 2. Construir filas con los nuevos datos de proveedor
         filas = []
         for _, row_base in df_base.iterrows():
             articulo = row_base['Artículo']
             desc = row_base.get('Descripción Artículo', '')
-            unidad = unidades_dict.get(articulo, 'UND')
-            prov_data = proveedores_dict.get(articulo, {"codigo": "", "nombre": "", "unidad_medida_compra": "", "factor_conversion": 1.0})
-            codigo_prov = prov_data["codigo"]
-            nombre_prov = prov_data["nombre"]
-            unidad_medida_compra = prov_data["unidad_medida_compra"]
-            factor_conversion = prov_data["factor_conversion"]
+            unidad_inv = unidades_dict.get(articulo, 'UND')
+            prov_data = proveedores_dict.get(articulo, {"codigo": "", "nombre": "", "unidad_medida_compra": "", "factor_conversion": 1.0, "ultimo_precio_compra": 0.0})
+            codigo_prov = prov_data.get("codigo", "")
+            nombre_prov = prov_data.get("nombre", "")
+            unidad_compra = prov_data.get("unidad_medida_compra", "")
+            factor_conv = prov_data.get("factor_conversion", 1.0)
+            ultimo_precio = prov_data.get("ultimo_precio_compra", 0.0)
             saldo_inicial = row_base.get('Saldo Inicial Cantidad', 0.0)
 
             fila = {
@@ -401,10 +402,11 @@ class ReportService:
                 'Descripción Artículo': desc,
                 'Código Proveedor': codigo_prov,
                 'Nombre Proveedor': nombre_prov,
-                'Unidad Medida': unidad,
-                'Saldo Inicial': saldo_inicial,
-                'Unidad de Medida de Compra': unidad_medida_compra,
-                'Factor de Conversión': factor_conversion
+                'Unidad Medida': unidad_inv,
+                'Unidad Medida Compra': unidad_compra,         # ← nueva
+                'Factor de Conversión': factor_conv,           # ← nueva
+                'Último Precio de Compra': ultimo_precio,      # ← nueva
+                'Saldo Inicial': saldo_inicial
             }
 
             # Cantidades por periodo
@@ -424,7 +426,8 @@ class ReportService:
         # 3. Orden de columnas definitivo (incluye las nuevas)
         column_order = (
             ['Artículo', 'Descripción Artículo', 'Código Proveedor', 'Nombre Proveedor',
-            'Unidad Medida', 'Unidad de Medida de Compra', 'Factor de Conversión', 'Saldo Inicial'] +
+            'Unidad Medida', 'Unidad Medida Compra', 'Factor de Conversión', 'Último Precio de Compra',
+            'Saldo Inicial'] +
             periodos +
             ['PROMEDIO', 'STOCK MAXIMO', 'STOCK SEGURIDAD', 'STOCK TRIMESTRAL', 'MAYOR ROTACION'] +
             ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']
@@ -454,9 +457,8 @@ class ReportService:
 
         # Disponible (Actual) = En stock - Comprometido
         df_presup['Disponible (Actual)'] = (df_presup['En stock'] - df_presup['Comprometido']).round(2)
-        # Propuesto = PROMEDIO - Disponible (usamos la columna 'Disponible' que es el saldo disponible real)
+        # Propuesto = PROMEDIO - Disponible
         df_presup['Propuesto'] = (df_presup['PROMEDIO'] - df_presup['Disponible']).clip(lower=0).round(2)
-       
 
         # MAYOR ROTACION
         meses_con_movimiento = (df_presup[mes_cols] > 0).sum(axis=1)
@@ -469,9 +471,9 @@ class ReportService:
                 return "STOCK PERMANENTE"
         df_presup['MAYOR ROTACION'] = meses_con_movimiento.apply(clasificar_rotacion)
 
-        # 7. Guardar en Excel
+        # 7. Guardar en Excel (sin cabecera para evitar duplicados)
         sheet_name = "Presupuesto"
-        df_presup.to_excel(writer, sheet_name="Presupuesto", index=False, startrow=3, header=False)
+        df_presup.to_excel(writer, sheet_name=sheet_name, index=False, startrow=3, header=False)
 
         # 8. Formato
         ExcelFormatter.aplicar_formato_presupuesto(writer.sheets[sheet_name], periodos)

@@ -362,9 +362,9 @@ class ExcelFormatter:
         align_center = Alignment(horizontal='center', vertical='center')
 
         num_meses = len(periodos)
-        # Columnas fijas: Art, Desc, Cód.Prov, Nom.Prov, UM, UM Compras, Factor Conversion, Saldo Inicial = 8
-        # + meses + 5 calculadas + 6 inventario = 6 + num_meses + 5 + 6
-        num_columnas_total = 8 + num_meses + 5 + 6
+        # Columnas fijas: Art, Desc, Cód.Prov, Nom.Prov, UM, UM Compra, Factor Conv, Últ.Precio, Saldo Inicial = 9
+        # + meses + 5 calculadas + 6 inventario = 9 + num_meses + 5 + 6
+        num_columnas_total = 9 + num_meses + 5 + 6
         ultima_columna = num_columnas_total
 
         # Título
@@ -379,7 +379,9 @@ class ExcelFormatter:
         cabeceras_fijas = [
             'Artículo', 'Descripción Artículo',
             'Código Proveedor', 'Nombre Proveedor',
-            'Unidad Medida', 'Unidad de Medida de Compra', 'Factor de Conversión', 'Saldo Inicial'
+            'Unidad Medida', 'Unidad Medida Compra',
+            'Factor de Conversión', 'Último Precio de Compra',
+            'Saldo Inicial'
         ]
         for h in cabeceras_fijas:
             c = ws.cell(3, col)
@@ -409,7 +411,7 @@ class ExcelFormatter:
             c.fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
             col += 1
 
-        # Inventario (ahora incluye las dos nuevas)
+        # Inventario
         for titulo in ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']:
             c = ws.cell(3, col)
             c.value = titulo
@@ -421,11 +423,12 @@ class ExcelFormatter:
         # Anchos
         ws.column_dimensions['A'].width = 15
         ws.column_dimensions['B'].width = 30
-        ws.column_dimensions['C'].width = 14   # Código Proveedor
+        ws.column_dimensions['C'].width = 14   # Cód. Proveedor
         ws.column_dimensions['D'].width = 25   # Nombre Proveedor
         ws.column_dimensions['E'].width = 12   # UM
-        ws.column_dimensions['F'].width = 15   # UM Compras
-        ws.column_dimensions['G'].width = 12   # Factor Conversion
-        ws.column_dimensions['H'].width = 12   # Saldo Inicial
-        for c in range(9, col):
+        ws.column_dimensions['F'].width = 14   # UM Compra
+        ws.column_dimensions['G'].width = 14   # Factor Conv.
+        ws.column_dimensions['H'].width = 16   # Último Precio
+        ws.column_dimensions['I'].width = 12   # Saldo Inicial
+        for c in range(10, col):
             ws.column_dimensions[get_column_letter(c)].width = 14

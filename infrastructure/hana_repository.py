@@ -235,13 +235,37 @@ class HanaRepository:
         resultados = {}
         for i in range(0, len(articulos_validos), self.batch_size):
             batch = articulos_validos[i:i+self.batch_size]
+            # 1. Inicializar todos los artículos del batch con valores por defecto
+            for articulo in batch:
+                resultados[articulo] = {
+                    "codigo": "",
+                    "nombre": "",
+                    "unidad_medida_compra": "",
+                    "factor_conversion": 1.0,
+                    "ultimo_precio_compra": 0.0
+                }
             placeholders = ','.join(['?'] * len(batch))
             query = f'''
-                SELECT a."ItemCode", b."CardCode", b."CardName", 
-                a."BuyUnitMsr", a."NumInBuy"
-                FROM SBO_ORODELTI_PROD.OITM a
-                left JOIN SBO_ORODELTI_PROD.OCRD b ON a."CardCode" = b."CardCode"
-                WHERE a."ItemCode" IN ({placeholders})
+                SELECT T0."ItemCode", T2."CardCode", T2."CardName",
+                    T0."BuyUnitMsr", T0."NumInBuy", T1."Price"
+                FROM "SBO_ORODELTI_PROD"."OITM" T0
+                INNER JOIN (
+                    SELECT P1."ItemCode", P1."Price", P0."CardCode", P1."Currency",
+                        P0."DocDate",
+                        ROW_NUMBER() OVER (
+                            PARTITION BY P1."ItemCode"
+                            ORDER BY P0."DocDate" DESC, P0."DocEntry" DESC
+                        ) AS RN
+                    FROM "SBO_ORODELTI_PROD"."OPCH" P0
+                    INNER JOIN "SBO_ORODELTI_PROD"."PCH1" P1
+                        ON P0."DocEntry" = P1."DocEntry"
+                ) T1 ON T0."ItemCode" = T1."ItemCode"
+                LEFT JOIN "SBO_ORODELTI_PROD"."OCRD" T2
+                    ON T1."CardCode" = T2."CardCode"
+                WHERE T1.RN = 1
+                AND T0."ItemCode" IN ({placeholders})
+                GROUP BY T0."ItemCode", T2."CardCode",
+                    T2."CardName", T0."BuyUnitMsr", T0."NumInBuy", T1."Price"
             '''
             try:
                 results = self.pool.execute_query(query, params=batch, fetch_all=True)
@@ -250,17 +274,19 @@ class HanaRepository:
                         item = str(row[0]).strip() if row[0] else ""
                         codigo = str(row[1]).strip() if row[1] else ""
                         nombre = str(row[2]).strip() if row[2] else ""
-                        unida_medida_compra = str(row[3]).strip() if row[3] else ""
+                        unidad_medida_compra = str(row[3]).strip() if row[3] else ""
                         factor_conversion = float(row[4]) if row[4] is not None else 1.0
-                        # Si el artículo ya tiene un proveedor, se puede concatenar o mantener el primero. Aquí mantenemos el primero.
-                        if item not in resultados:
-                            resultados[item] = {"codigo": codigo, 
-                                                "nombre": nombre, 
-                                                "unidad_medida_compra": unida_medida_compra, 
-                                                "factor_conversion": factor_conversion}
+                        ultimo_precio_compra = float(row[5]) if row[5] is not None else 0.0
+                        # Sobrescribir solo si el artículo existe en el batch
+                        if item in resultados:
+                            resultados[item] = {
+                                "codigo": codigo,
+                                "nombre": nombre,
+                                "unidad_medida_compra": unidad_medida_compra,
+                                "factor_conversion": factor_conversion,
+                                "ultimo_precio_compra": ultimo_precio_compra
+                            }
             except Exception as e:
                 print(f"Error en consulta proveedores: {e}")
-                for articulo in batch:
-                    if articulo not in resultados:
-                        resultados[articulo] = {"codigo": "", "nombre": ""}
+                # ya están inicializados con valores por defecto, no es necesario hacer nada
         return resultados
