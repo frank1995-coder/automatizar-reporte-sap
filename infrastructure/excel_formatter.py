@@ -363,8 +363,8 @@ class ExcelFormatter:
 
         num_meses = len(periodos)
         # Columnas fijas: Art, Desc, Cód.Prov, Nom.Prov, UM, UM Compra, Factor Conv, Últ.Precio, Saldo Inicial = 9
-        # + meses + 5 calculadas + 6 inventario = 9 + num_meses + 5 + 6
-        num_columnas_total = 9 + num_meses + 5 + 6
+        # + meses + 5 calculadas + 6 inventario = 9 + num_meses + 5 + 9
+        num_columnas_total = 9 + num_meses + 5 + 9
         ultima_columna = num_columnas_total
 
         # Título
@@ -412,7 +412,7 @@ class ExcelFormatter:
             col += 1
 
         # Inventario
-        for titulo in ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']:
+        for titulo in ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto', 'Propuesto Convertido', 'Precio', 'Precio 3 meses']:
             c = ws.cell(3, col)
             c.value = titulo
             c.font = font_header

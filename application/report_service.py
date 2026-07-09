@@ -430,7 +430,8 @@ class ReportService:
             'Saldo Inicial'] +
             periodos +
             ['PROMEDIO', 'STOCK MAXIMO', 'STOCK SEGURIDAD', 'STOCK TRIMESTRAL', 'MAYOR ROTACION'] +
-            ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto']
+            ['En stock', 'Comprometido', 'Solicitado', 'Disponible (Actual)', 'Disponible', 'Propuesto',
+            'Propuesto Convertido', 'Precio', 'Precio 3 meses']
         )
 
         # 4. Crear DataFrame
@@ -457,8 +458,18 @@ class ReportService:
 
         # Disponible (Actual) = En stock - Comprometido
         df_presup['Disponible (Actual)'] = (df_presup['En stock'] - df_presup['Comprometido']).round(2)
+
         # Propuesto = PROMEDIO - Disponible
         df_presup['Propuesto'] = (df_presup['PROMEDIO'] - df_presup['Disponible']).clip(lower=0).round(2)
+        
+        # Propuesto Convertido = Propuesto / Factor de Conversión
+        df_presup['Propuesto Convertido'] = (df_presup['Propuesto'] / df_presup['Factor de Conversión']).round(2)
+
+        # Precio = Último Precio de Compra * Propuesto Convertido
+        df_presup['Precio'] = (df_presup['Último Precio de Compra'] *  df_presup['Propuesto Convertido']).round(2)
+        
+        # Precio = Último Precio de Compra * Propuesto Convertido de los ultimos 3 meses
+        df_presup['Precio 3 meses'] = ((df_presup['Último Precio de Compra'] *  df_presup['Propuesto Convertido']) * 3).round(2)
 
         # MAYOR ROTACION
         meses_con_movimiento = (df_presup[mes_cols] > 0).sum(axis=1)
