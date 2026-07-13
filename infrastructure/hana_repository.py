@@ -206,8 +206,10 @@ class HanaRepository:
                        "OnOrder" AS "Solicitado",
                        ("OnHand" - "IsCommited" + "OnOrder") AS "Disponible"
                 FROM "SBO_ORODELTI_PROD"."OITW"
-                WHERE "WhsCode" = 'GEN D1_3' AND "ItemCode" IN ({placeholders})
+                WHERE 
+                "ItemCode" IN ({placeholders})
             '''
+            #--"WhsCode" = 'GEN D1_3' AND 
             try:
                 results = self.pool.execute_query(query, params=batch, fetch_all=True)
                 if results:
