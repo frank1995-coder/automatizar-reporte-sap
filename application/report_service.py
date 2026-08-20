@@ -451,10 +451,10 @@ class ReportService:
 
         # 6. Calcular columnas derivadas
         mes_cols = periodos
-        df_presup['PROMEDIO'] = df_presup[mes_cols].mean(axis=1).round(2)
-        df_presup['STOCK MAXIMO'] = df_presup[mes_cols].max(axis=1).round(2)
-        df_presup['STOCK SEGURIDAD'] = (df_presup['STOCK MAXIMO'] - df_presup['PROMEDIO']).round(2)
-        df_presup['STOCK TRIMESTRAL'] = (df_presup['PROMEDIO'] * 3 + df_presup['STOCK SEGURIDAD']).round(2)
+        df_presup['PROMEDIO'] = df_presup[mes_cols].mean(axis=1).round(0)
+        df_presup['STOCK MAXIMO'] = df_presup[mes_cols].max(axis=1).round(0)
+        df_presup['STOCK SEGURIDAD'] = (df_presup['STOCK MAXIMO'] - df_presup['PROMEDIO']).round(0)
+        df_presup['STOCK TRIMESTRAL'] = (df_presup['PROMEDIO'] * 3 + df_presup['STOCK SEGURIDAD']).round(0)
 
         # Disponible (Actual) = En stock - Comprometido
         df_presup['Disponible (Actual)'] = (df_presup['En stock'] - df_presup['Comprometido']).round(2)
