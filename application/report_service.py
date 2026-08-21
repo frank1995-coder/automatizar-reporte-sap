@@ -486,6 +486,6 @@ class ReportService:
         sheet_name = "Presupuesto"
         df_presup.to_excel(writer, sheet_name=sheet_name, index=False, startrow=3, header=False)
 
-        # 8. Formato
+        # Formato
         ExcelFormatter.aplicar_formato_presupuesto(writer.sheets[sheet_name], periodos)
         return sheet_name
