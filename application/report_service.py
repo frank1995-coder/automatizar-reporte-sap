@@ -212,22 +212,34 @@ class ReportService:
     def _crear_reportes_separados(self, writer, dfs_tipos, precios_pd, saldos_iniciales):
         hojas_creadas = []
 
-        # --- Traslados+Stock (IM, SM Ord, EM Ord) ---
+        # --- Traslados+Stock (IM, SM Ord) ---
         tipos_traslado = {"IM": dfs_tipos.get("IM"),
-                          "SM": dfs_tipos.get("SM"),
-                          "EM": dfs_tipos.get("EM")
+                          "SM": dfs_tipos.get("SM")
                           }
         dfs_traslados = {}
         for tipo, df_tipo in tipos_traslado.items():
             if df_tipo is None or df_tipo.empty:
                 continue
-            if tipo in ["SM", "EM"
-                        ] and 'Series' in df_tipo.columns:
+            if tipo == "SM" and 'Series' in df_tipo.columns:
                 df_filt = df_tipo[df_tipo['Series'] == 'Ordinario'].copy()
                 if not df_filt.empty:
                     dfs_traslados[tipo] = df_filt
             else:
                 dfs_traslados[tipo] = df_tipo.copy()
+
+        # --- Compras (PD + EM Ord) ---
+        dfs_compras = {}
+        if "PD" in dfs_tipos and dfs_tipos["PD"] is not None and not dfs_tipos["PD"].empty:
+            dfs_compras["PD"] = dfs_tipos["PD"].copy()
+        
+        df_em = dfs_tipos.get("EM")
+        if df_em is not None and not df_em.empty:
+            if 'Series' in df_em.columns:
+                df_em_ord = df_em[df_em['Series'] == 'Ordinario'].copy()
+                if not df_em_ord.empty:
+                    dfs_compras["EM"] = df_em_ord
+            else:
+                dfs_compras["EM"] = df_em.copy()
 
         if dfs_traslados:
             secciones, df_base = self._preparar_secciones(dfs_traslados, precios_pd, saldos_iniciales)
@@ -249,9 +261,9 @@ class ReportService:
                 if hoja_presup:
                     hojas_creadas.append(hoja_presup)
 
-        # --- Compras (PD) ---
-        if "PD" in dfs_tipos and dfs_tipos["PD"] is not None and not dfs_tipos["PD"].empty:
-            secciones, df_base = self._preparar_secciones({"PD": dfs_tipos["PD"]}, precios_pd, saldos_iniciales)
+        # --- Compras (PD + EM Ord) ---
+        if dfs_compras:
+            secciones, df_base = self._preparar_secciones(dfs_compras, precios_pd, saldos_iniciales)
             if secciones:
                 inventarios_dict = self.repo.obtener_inventarios_masivos(df_base['Artículo'].tolist())
                 unidades_dict = self.repo.obtener_unidades_masivas(df_base['Artículo'].tolist())
@@ -266,7 +278,7 @@ class ReportService:
         hoja_tras = self._totales_por_grupo(writer, dfs_traslados, precios_pd, "Totales Traslados por Grupo")
         if hoja_tras:
             hojas_creadas.append(hoja_tras)
-        hoja_comp = self._totales_por_grupo(writer, {"PD": dfs_tipos.get("PD")}, precios_pd, "Totales Compras por Grupo")
+        hoja_comp = self._totales_por_grupo(writer, dfs_compras, precios_pd, "Totales Compras por Grupo")
         if hoja_comp:
             hojas_creadas.append(hoja_comp)
 
