@@ -53,7 +53,7 @@ class ExcelFormatter:
         # Título principal
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=20)
         cell = ws.cell(1, 1)
-        cell.value = "REPORTE DE TRASLADOS + INVENTARIO (IM, SM, EM)"
+        cell.value = "REPORTE DE TRASLADOS + INVENTARIO (IM, SM)"
         cell.font = Font(bold=True, size=14, color="FFFFFF")
         cell.fill = PatternFill(start_color="4B0082", end_color="4B0082", fill_type="solid")
         cell.alignment = align_center
@@ -170,7 +170,7 @@ class ExcelFormatter:
 
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=20)
         cell = ws.cell(1, 1)
-        cell.value = "REPORTE DE COMPRAS + INVENTARIO (PD - INGRESOS POR ÓRDENES DE COMPRA)"
+        cell.value = "REPORTE DE COMPRAS + INVENTARIO (PD + EM)"
         cell.font = Font(bold=True, size=14, color="FFFFFF")
         cell.fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")
         cell.alignment = align_center
