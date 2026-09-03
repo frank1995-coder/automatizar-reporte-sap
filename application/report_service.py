@@ -215,12 +215,14 @@ class ReportService:
         # --- Traslados+Stock (IM, SM Ord, EM Ord) ---
         tipos_traslado = {"IM": dfs_tipos.get("IM"),
                           "SM": dfs_tipos.get("SM"),
-                          "EM": dfs_tipos.get("EM")}
+                          "EM": dfs_tipos.get("EM")
+                          }
         dfs_traslados = {}
         for tipo, df_tipo in tipos_traslado.items():
             if df_tipo is None or df_tipo.empty:
                 continue
-            if tipo in ["SM", "EM"] and 'Series' in df_tipo.columns:
+            if tipo in ["SM", "EM"
+                        ] and 'Series' in df_tipo.columns:
                 df_filt = df_tipo[df_tipo['Series'] == 'Ordinario'].copy()
                 if not df_filt.empty:
                     dfs_traslados[tipo] = df_filt

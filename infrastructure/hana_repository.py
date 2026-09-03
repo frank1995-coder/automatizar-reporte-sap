@@ -207,7 +207,7 @@ class HanaRepository:
                        ("OnHand" - "IsCommited" + "OnOrder") AS "Disponible"
                 FROM "SBO_ORODELTI_PROD"."OITW"
                 WHERE 
-                "ItemCode" IN ({placeholders})
+                "ItemCode" IN ({placeholders}) AND "WhsCode" = 'GEN D1_3'
             '''
             #--"WhsCode" = 'GEN D1_3' AND 
             try:
